@@ -1504,8 +1504,8 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             File file = new File(dir, "voice_" + System.currentTimeMillis() + ".wav");
-            HashMap<String, String> params = new HashMap<>();
-            params.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "save");
+            Bundle params = new Bundle();
+            params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "save");
             int result = tts.synthesizeToFile(value, params, file, "save_" + System.currentTimeMillis());
             if (result == TextToSpeech.SUCCESS) {
                 store.consume(Limits.Feature.VOICE);
