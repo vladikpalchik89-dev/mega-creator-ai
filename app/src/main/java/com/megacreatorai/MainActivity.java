@@ -234,11 +234,9 @@ public class MainActivity extends AppCompatActivity {
     private void limitsDialog(Limits.Feature feature) {
         int limit = Limits.dailyLimit(store.getTariff(), feature);
         Ui.dialog(this, "Лимит генераций",
-                "На тарифе " + store.getTariff().name()
-                        + " доступно " + limit + " генераций в день по этому инструменту.\n\n"
-                        + "PRO — 299 ₽/мес, PREMIUM — 599 ₽/мес. "
-                        + (loggedIn() ? "Оплата доступна в Профиле через сервер."
-                        : "В Профиле можно войти в аккаунт или включить демо-режим."),
+                "Все инструменты бесплатны: " + limit
+                        + " генераций в день по инструменту «" + featureName(feature) + "». "
+                        + "Оплата и подписка не нужны.",
                 "Открыть тарифы", () -> selectTab(R.id.nav_profile));
     }
 
@@ -296,8 +294,7 @@ public class MainActivity extends AppCompatActivity {
                         + "Реклама: " + store.remaining(Limits.Feature.AD) + "   •   "
                         + "Озвучка: " + store.remaining(Limits.Feature.VOICE),
                 13, R.color.text, false));
-        limitsBox.addView(Ui.muted(this, "Тариф " + store.getTariff().name()
-                + " — параметры и цены в Профиле"));
+        limitsBox.addView(Ui.muted(this, "Все инструменты бесплатны — без оплаты и подписки"));
         limits.addView(limitsBox);
         col.addView(limits);
 
@@ -314,9 +311,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         col.addView(Ui.spacer(this, 10));
-        col.addView(Ui.card(this, "🚀", "Больше возможностей",
-                "PRO и PREMIUM: больше генераций, фото и видео",
-                v -> selectTab(R.id.nav_profile)));
+        col.addView(Ui.card(this, "🎁", "Всё включено",
+                "Все инструменты ИИ бесплатны: тексты, фото, видео, озвучка",
+                v -> selectTab(R.id.nav_studio)));
         showTab(col);
     }
 
@@ -326,9 +323,9 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout col = column();
         col.addView(Ui.text(this, "AI-Студия", 20, R.color.text, true));
         col.addView(Ui.muted(this, loggedIn()
-                ? "Подключён сервер: генерация выполняется настоящей языковой моделью."
+                ? "Подключён сервер: генерация выполняется бесплатной моделью без оплаты."
                 : "Локальный режим: шаблонный генератор без нейросети. "
-                        + "Для настоящего ИИ войдите в аккаунт на сервере в Профиле."));
+                        + "Для настоящего бесплатного ИИ укажите адрес сервера в Профиле."));
 
         EditText topic = Ui.edit(this, studioTool.equals("Переписать")
                 ? "Текст для переписывания" : "Тема, товар или идея", studioTopic, true);
@@ -886,12 +883,9 @@ public class MainActivity extends AppCompatActivity {
             col.addView(card);
             col.addView(Ui.spacer(this, 8));
         }
-        col.addView(Ui.muted(this, loggedIn()
-                ? "Оплата через сервер: ссылку на оплату откроет ЮKassa. "
-                        + "Тариф обновится после подтверждения платежа."
-                : store.isDemoUnlocked()
-                        ? "Демо-режим включён: платные тарифы доступны без оплаты."
-                        : "Для реальной оплаты войдите в серверный аккаунт выше."));
+        col.addView(Ui.muted(this,
+                "Оплата не требуется: все тарифы дают полный доступ. "
+                        + "Для настоящих ИИ-запросов укажите адрес бесплатного сервера ниже."));
 
         col.addView(Ui.section(this, "Лимиты сегодня"));
         MaterialCardView limits = newCard();
@@ -948,8 +942,9 @@ public class MainActivity extends AppCompatActivity {
         col.addView(Ui.section(this, "Помощь"));
         LinearLayout help = row();
         help.addView(Ui.chipButton(this, "Как это работает", v -> Ui.info(this, "MEGA CREATOR AI",
-                "Тексты, хештеги, реклама, шаблоны и озвучка работают локально. "
-                        + "AI-фото, AI-видео и реальные модели требуют сервера и внешних API.")));
+                "Все инструменты открыты бесплатно. Тексты и шаблоны работают локально, "
+                        + "ИИ-текст и AI-фото — через бесплатный сервер без ключей; "
+                        + "AI-видео требует настроенного провайдера на сервере.")));
         help.addView(Ui.chipButton(this, "Конфиденциальность", v -> Ui.info(this, "Данные",
                 "Профиль и проекты хранятся на устройстве. Секреты не встраиваются в APK. "
                         + "Удалить данные можно кнопкой ниже.")));
@@ -971,33 +966,10 @@ public class MainActivity extends AppCompatActivity {
             Ui.toast(this, "Этот тариф уже выбран");
             return;
         }
-        if (tariff == Limits.Tariff.FREE) {
-            store.setTariff(tariff);
-            updateHeader();
-            renderProfile();
-            Ui.toast(this, "Выбран FREE");
-            return;
-        }
-        if (loggedIn()) {
-            buyTariff(tariff.name());
-            return;
-        }
-        if (!store.isDemoUnlocked()) {
-            Ui.dialog(this, "Оплата не подключена",
-                    "Это демонстрация тарифа " + tariff.name() + " без реального платежа. "
-                            + "После подключения платёжного провайдера оплату проверяет сервер.",
-                    "Включить демо", () -> {
-                        store.setDemoUnlocked(true);
-                        store.setTariff(tariff);
-                        updateHeader();
-                        renderProfile();
-                    });
-        } else {
-            store.setTariff(tariff);
-            updateHeader();
-            renderProfile();
-            Ui.toast(this, "Выбран " + tariff.name() + " (демо)");
-        }
+        store.setTariff(tariff);
+        updateHeader();
+        renderProfile();
+        Ui.toast(this, "Выбран " + tariff.name() + " — всё бесплатно");
     }
 
     private void checkServer() {
@@ -1273,7 +1245,7 @@ public class MainActivity extends AppCompatActivity {
                 ? "Аккаунт: вы вошли" : "Аккаунт: нужен вход в Профиле",
                 13, R.color.text_muted, false));
         sb.addView(Ui.text(this, Limits.isAvailable(store.getTariff(), feature)
-                ? "Доступ: тариф " + store.getTariff().name()
+                ? "Доступ: открыто бесплатно (" + store.getTariff().name() + ")"
                 : "Доступ: нужен PREMIUM", 13, R.color.text_muted, false));
         sb.addView(Ui.muted(this, "Остаток сегодня: "
                 + store.remaining(feature) + " генераций"));
