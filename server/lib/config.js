@@ -66,8 +66,9 @@ function publicStatus() {
   return {
     devMode: config.devMode,
     codeDelivery: Boolean(config.codeWebhookUrl),
-    ai: configured(config.ai),
-    images: configured(config.image),
+    freeAi: true,
+    ai: true,
+    images: true,
     videos: configured(config.video),
     payments: paymentsConfigured() && Boolean(config.payments.returnUrl)
   };
