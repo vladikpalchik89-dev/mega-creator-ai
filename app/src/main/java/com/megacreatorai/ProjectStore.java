@@ -56,7 +56,8 @@ public final class ProjectStore {
     }
 
     public Limits.Tariff getTariff() {
-        return Limits.fromName(prefs.getString(KEY_TARIFF, "FREE"), Limits.Tariff.FREE);
+        // По умолчанию открыт максимум: всё бесплатно, без оплаты и демо-режима.
+        return Limits.fromName(prefs.getString(KEY_TARIFF, "PREMIUM"), Limits.Tariff.PREMIUM);
     }
 
     public void setTariff(Limits.Tariff tariff) {
