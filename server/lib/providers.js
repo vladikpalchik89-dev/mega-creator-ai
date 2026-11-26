@@ -5,12 +5,37 @@ const { fail, clip } = require('./util');
 
 const TIMEOUT_MS = 30000;
 
+// Бесплатные публичные эндпоинты без ключей: работают как fallback,
+// если пользовательские AI_* / IMAGE_* не заданы.
+const FREE_TEXT_URL = 'https://text.pollinations.ai/';
+const FREE_IMAGE_URL = 'https://image.pollinations.ai/prompt/';
+
 function textConfigured() {
-  return configured(config.ai);
+  return true;
 }
 
 function imageConfigured() {
-  return configured(config.image);
+  return true;
+}
+
+async function requestText(url) {
+  let response;
+  try {
+    response = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+  } catch (error) {
+    fail(502, 'Бесплатный ИИ-провайдер недоступен или превысил время ожидания');
+  }
+  if (!response.ok) {
+    fail(502, `Бесплатный ИИ-провайдер вернул HTTP ${response.status}`);
+  }
+  let text = '';
+  try {
+    text = await response.text();
+  } catch (error) {
+    text = '';
+  }
+  if (!String(text).trim()) fail(502, 'Бесплатный ИИ-провайдер вернул пустой ответ');
+  return String(text).trim();
 }
 
 function videoConfigured() {
@@ -82,10 +107,15 @@ function buildPrompt(feature, body) {
 }
 
 async function generateText(feature, body) {
-  if (!textConfigured()) {
-    fail(503, 'Текстовый ИИ-провайдер не настроен: укажите AI_BASE_URL, AI_API_KEY и AI_MODEL');
-  }
   const messages = buildPrompt(feature, body);
+
+  // Бесплатный режим без ключей: публичный текстовый ИИ.
+  if (!configured(config.ai)) {
+    return requestText(FREE_TEXT_URL + encodeURIComponent(
+      `${messages.system}\n\n${messages.user}`
+    ));
+  }
+
   const data = await requestJson(joinUrl(config.ai.baseUrl, 'chat/completions'), {
     method: 'POST',
     headers: {
@@ -111,9 +141,22 @@ async function generateText(feature, body) {
 }
 
 async function generateImage(prompt) {
-  if (!imageConfigured()) {
-    fail(503, 'Генерация изображений не настроена: укажите IMAGE_BASE_URL, IMAGE_API_KEY и IMAGE_MODEL');
+  // Бесплатный режим без ключей: публичная генерация изображений.
+  if (!configured(config.image)) {
+    const url = FREE_IMAGE_URL + encodeURIComponent(prompt)
+      + '?width=1024&height=1024&nologo=true';
+    let response;
+    try {
+      response = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+    } catch (error) {
+      fail(502, 'Бесплатный сервис изображений недоступен');
+    }
+    if (!response.ok) fail(502, `Сервис изображений вернул HTTP ${response.status}`);
+    const type = String(response.headers.get('content-type') || '');
+    if (!type.startsWith('image/')) fail(502, 'Сервис изображений вернул не изображение');
+    return response.url || url;
   }
+
   const data = await requestJson(joinUrl(config.image.baseUrl, 'v1/images/generations'), {
     method: 'POST',
     headers: {
