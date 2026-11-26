@@ -1,0 +1,12 @@
+{
+  "name": "mega-creator-ai-server",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Сервер MEGA CREATOR AI без npm-зависимостей (Node.js 18+)",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
